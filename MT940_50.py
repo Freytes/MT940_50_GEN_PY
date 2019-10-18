@@ -7,21 +7,24 @@
 # Created:     25-10-2015
 # Updated:     18-10-2019
 # Copyright:   (c) Thomas Edward Rudge 2015
-# Modified by: (c) Christopher Freytes 2019
+# Modified by: Christopher Freytes 2019
 # Licence:     GPL
-# Revision Notes: Updated arguments for python 3.8
 # -------------------------------------------------------------------------------
 # Written for Python 3.8.6
 
-import csv, datetime, os
+import csv, os, datetime
+from datetime import datetime
 
 
-def gen_mt9(active_file=r"DIR\sample.csv",
+def gen_mt9(active_file=r"\DIR\sample.csv",
             msg_type='940',
-            target_file=r"DIR\sample.swift",
+            target_file=r'\DIR\wbMT940' + '.' + str(
+                datetime.now().strftime('%Y_%m_'
+                                        '%d_%H_'
+                                        '%M_%S')) + '.fin',
             dtf='DDMMYYYY',
             # Basic Header Block
-            appid='A',
+            appid='F',
             servid='21',
             session_no='0000',
             seqno='000000',
@@ -31,8 +34,8 @@ def gen_mt9(active_file=r"DIR\sample.csv",
             dlvt_mnty='',
             obs='',
             inp_time='0000',
-            out_date='010101',
-            out_time='1200',
+            out_date='000000',
+            out_time='0000',
             mir=True,
             # User Header Block
             f113=False,
@@ -252,6 +255,7 @@ def gen_mt9(active_file=r"DIR\sample.csv",
         zfile.write(zline)
 
     print('MT%s created successfully.' % msg_type)
+
 
 
 def convert_values(xline, dtf):

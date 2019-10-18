@@ -18,7 +18,7 @@ from datetime import datetime
 
 def gen_mt9(active_file=r"\DIR\sample.csv",
             msg_type='940',
-            target_file=r'\DIR\wbMT940' + '.' + str(
+            target_file=r'\DIR\MT940' + '.' + str(
                 datetime.now().strftime('%Y_%m_'
                                         '%d_%H_'
                                         '%M_%S')) + '.fin',

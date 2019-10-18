@@ -1,6 +1,9 @@
 # MT940-950-GEN
 Create an MT940 or MT950 swift cash statement from a csv file.
 
+##Running the program
+python mt940_50.py
+
 ##CSV
 The csv columns represent various swift fields and their components.
 

@@ -1,22 +1,25 @@
-#! python3
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Name:        Swift MT940/950 Generator
 # Purpose:     Takes a specific csv file and converts it to
 #              either an MT940 or MT950 swift message.
-# Version:     1.1.0
+# Version:     1.2.0
 # Author:      Thomas Edward Rudge
 # Created:     25-10-2015
+# Updated:     18-10-2019
 # Copyright:   (c) Thomas Edward Rudge 2015
+# Modified by: (c) Christopher Freytes 2019
 # Licence:     GPL
-#-------------------------------------------------------------------------------
-# Written for Python 3
+# Revision Notes: Updated arguments for python 3.8
+# -------------------------------------------------------------------------------
+# Written for Python 3.8.6
 
 import csv, datetime, os
 
 
-def gen_mt9(active_file,
-            msg_type='950',
-            target_file, dtf='DDMMYYYY',
+def gen_mt9(active_file=r"DIR\sample.csv",
+            msg_type='940',
+            target_file=r"DIR\sample.swift",
+            dtf='DDMMYYYY',
             # Basic Header Block
             appid='A',
             servid='21',
@@ -37,14 +40,12 @@ def gen_mt9(active_file,
             chk=False):
     '''
     CSV --> MT940/50
-
     All arguments must be strings.
     ---------------------------------------------------------------
     active_file : The location of the csv file to be read.
     msg_type    : Either 940 or 950
     target_file : The location where the MT940/50 should be written
     ---------------------------------------------------------------
-
     # Optional Arguments
     dtf         : The format of the dates present in the csv file - YYYYMMDD
                                                                     DDMMYYYY (Default)
@@ -78,11 +79,21 @@ def gen_mt9(active_file,
     mur         : Message User Reference
     {5: Trailer Block ---------------------------------------------
     chk         : The checksum for the message.
+
+    File appending arguments
+    ---------------------------------------------------------------
+    w  write mode
+    r  read mode
+    a  append mode
+
+    w+  create file if it doesn't exist and open it in write mode
+    r+  open for reading and writing. Does not create file.
+    a+  create file if it doesn't exist and open it in append mode
     '''
     if not os.path.isfile(active_file):
         return False
 
-    with open(active_file,'r') as afile, open(target_file, 'a') as zfile:
+    with open(active_file, 'r+') as afile, open(target_file, 'w+') as zfile:
         # Keep track of the last lines details, so that we know when to close the statement or message.
         prev_line = {
             'account': '',
@@ -98,14 +109,14 @@ def gen_mt9(active_file,
             'abalsgn': '',
             'abaldte': '',
             'abal': ''
-            }
+        }
 
         csv_file = csv.reader(afile)
-        trn = 0 # Used to numerate TRNs if none present in file.
+        trn = 0  # Used to numerate TRNs if none present in file.
         lst_line = None
 
         for line in csv_file:
-            zline = '' # Line that will be written to the MT9 file.
+            zline = ''  # Line that will be written to the MT9 file.
             # Ignore the header
             if line and line[-2].upper().replace(' ', '') == 'REF4(MT940ONLY)' or line[0] == '':
                 continue
@@ -116,8 +127,7 @@ def gen_mt9(active_file,
             line = convert_values(line, dtf)
 
             # Check to see whether a previous page should be closed.
-            if (prev_line['stmtpg'] != line[4] or prev_line['account'] != line[2]) and
-                prev_line['account'] != '':
+            if (prev_line['stmtpg'] != line[4] or prev_line['account'] != line[2]) and prev_line['account'] != '':
                 # Close the page: ":62F:D151015EUR1618033889"
                 zline = ':62%s:%s%s%s%s\n' % (prev_line['cbaltyp'],
                                               prev_line['cbalsgn'],
@@ -134,7 +144,7 @@ def gen_mt9(active_file,
 
             # Check to see whether it's a new message.
             if prev_line['sendbic'] != line[0].upper() or prev_line['recvbic'] != line[1].upper():
-                if prev_line['sendbic'] != '':# Close the last message
+                if prev_line['sendbic'] != '':  # Close the last message
                     # Try and get the checksum of the message, and if successful add the CHK field and reset the file.
                     if chk:
                         zline += '-}{5:{CHK:%s}}\n' % chk
@@ -149,19 +159,19 @@ def gen_mt9(active_file,
                                              seqno)
 
                 # Create Application Header
-                if drctn == 'I': # Inward (From Swift)
+                if drctn == 'I':  # Inward (From Swift)
                     zline += '{2:I%s%s%s%s%s}' % (msg_type,
                                                   line[1].ljust(12, 'X'),
                                                   msg_prty,
                                                   dlvt_mnty,
                                                   obs)
-                else: # Outward (To Swift)
+                else:  # Outward (To Swift)
                     if mir is True:
                         # Auto generate mir
                         mir = (str(datetime.datetime.today()).replace('-', '')[2:8] +
-                              line[0].ljust(12, 'X') +
-                              session_no +
-                              seqno)
+                               line[0].ljust(12, 'X') +
+                               session_no +
+                               seqno)
                     # Add the block
                     zline += '{2:O%s%s%s%s%s%s}' % (msg_type,
                                                     inp_time,
@@ -177,7 +187,7 @@ def gen_mt9(active_file,
             if prev_line['stmtpg'] != line[4] or prev_line['account'] != line[2]:
                 # Add the TRN
                 if line[26] == '' or line[26].isspace():
-                    zline += ':20:MT94050GEN%s\n' % str(trn).rjust(6,'0')
+                    zline += ':20:MT94050GEN%s\n' % str(trn).rjust(6, '0')
                     trn += 1
                 else:
                     zline += ':20:%s\n' % line[26]
@@ -202,7 +212,7 @@ def gen_mt9(active_file,
 
             if line[16] and not line[16].isspace():
                 zline += '%s\n' % line[16]
-            if msg_type == '940' and line[25] and not line[25].isspace()
+            if msg_type == '940' and line[25] and not line[25].isspace():
                 # Add Ref4 for valid 940 items
                 zline += ':86:%s\n' % line[25]
 
@@ -211,16 +221,16 @@ def gen_mt9(active_file,
             prev_line['account'] = line[2]
             prev_line['sendbic'] = line[0]
             prev_line['recvbic'] = line[1]
-            prev_line['stmtno']  = line[3]
-            prev_line['stmtpg']  = line[4]
-            prev_line['ccy']     = line[24]
+            prev_line['stmtno'] = line[3]
+            prev_line['stmtpg'] = line[4]
+            prev_line['ccy'] = line[24]
             prev_line['cbalsgn'] = line[17]
             prev_line['cbaltyp'] = line[18]
             prev_line['cbaldte'] = line[19]
-            prev_line['cbal']    = line[20]
+            prev_line['cbal'] = line[20]
             prev_line['abalsgn'] = line[21]
             prev_line['abaldte'] = line[22]
-            prev_line['abal']    = line[23]
+            prev_line['abal'] = line[23]
             lst_line = line
         # Close the last line.
         zline = ':62F:%s%s%s%s\n' % (lst_line[17],
@@ -244,12 +254,12 @@ def gen_mt9(active_file,
     print('MT%s created successfully.' % msg_type)
 
 
-def convert_values(xline, dtf_):
+def convert_values(xline, dtf):
     '''
     Converts supplied values to swift MT equivalents.
     '''
     for i, item in enumerate(xline):
-        if i in [5, 6, 11, 17, 18 ,21]:
+        if i in [5, 6, 11, 17, 18, 21]:
             # Upper case Types and Signs.
             xline[i] = item.upper()
         elif i in [8, 12, 20, 23]:
@@ -266,4 +276,7 @@ def convert_values(xline, dtf_):
         else:
             continue
 
-    return(xline)
+    return (xline)
+
+
+gen_mt9()
